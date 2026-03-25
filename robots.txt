@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://www.scholarkidzzone.com/sitemap.xml
