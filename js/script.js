@@ -1,0 +1,518 @@
+/**
+ * ================================================================
+ * Scholar Kidz Zone — Main JavaScript
+ * ================================================================
+ * Sections:
+ *  1. CONFIG            — EmailJS credentials & gallery image list
+ *  2. EmailJS init      — Initialise the email SDK
+ *  3. sanitizeInput()   — XSS helper
+ *  4. Gallery           — Dynamically render gallery items
+ *  5. Enquiry form      — Validation + EmailJS submission
+ *  6. Navigation        — Hamburger, sticky header, active links
+ *  7. Back-to-top       — Show/hide + scroll handler
+ *  8. Scroll animations — IntersectionObserver fade-in
+ * ================================================================
+ *
+ * SECURITY NOTES (OWASP)
+ * - All user input is sanitized via sanitizeInput() before being
+ *   inserted into the DOM (prevents XSS).
+ * - No sensitive credentials live in this file — EmailJS keys are
+ *   placeholders that must be replaced before deployment.
+ * - Form fields have both HTML maxlength attributes and JS
+ *   length/pattern validation.
+ * - The form is submitted over HTTPS via EmailJS — no server-side
+ *   code or direct mail server credentials are exposed.
+ * ================================================================
+ */
+
+'use strict';
+
+/* ================================================================
+   1. CONFIGURATION
+   ================================================================
+   ⚠️  IMPORTANT — replace ALL placeholder values below:
+   ─────────────────────────────────────────────────────────────
+   EmailJS setup guide:
+     1. Create a free account at https://www.emailjs.com/
+     2. Add an Email Service (Gmail, Outlook, etc.)
+        → copy the Service ID into emailjs.serviceId
+     3. Create an Email Template. Use these variables in the
+        template body:
+          {{from_name}}   — sender's name
+          {{from_email}}  — sender's email
+          {{from_phone}}  — sender's phone
+          {{message}}     — enquiry message
+        → copy the Template ID into emailjs.templateId
+     4. Go to Account → API Keys
+        → copy the Public Key into emailjs.publicKey
+   ─────────────────────────────────────────────────────────────
+   Gallery setup guide:
+     1. Add photo files to /assets/gallery/
+     2. Add each filename + alt text to the images array below.
+        Static sites cannot auto-enumerate directories, so files
+        must be listed manually here.
+   ================================================================ */
+var CONFIG = {
+    emailjs: {
+        publicKey:  'YOUR_EMAILJS_PUBLIC_KEY',   // e.g. 'abc123XYZ'
+        serviceId:  'YOUR_EMAILJS_SERVICE_ID',   // e.g. 'service_xxxxxx'
+        templateId: 'YOUR_EMAILJS_TEMPLATE_ID',  // e.g. 'template_xxxxxx'
+        toEmail:    'abc@gmail.com'              // destination inbox
+    },
+
+    gallery: {
+        folder: 'assets/gallery/',
+        images: [
+            { file: 'activity1.jpg', alt: 'Kids playing and learning together' },
+            { file: 'activity2.jpg', alt: 'Storytelling session in the classroom' },
+            { file: 'activity3.jpg', alt: 'Art and craft activity' },
+            { file: 'activity4.jpg', alt: 'Music and dance class' },
+            { file: 'activity5.jpg', alt: 'Nature exploration outdoors' },
+            { file: 'activity6.jpg', alt: 'Numbers and letters fun' },
+            { file: 'activity7.jpg', alt: 'Outdoor playtime' },
+            { file: 'activity8.jpg', alt: 'Classroom learning activity' }
+            // Add more: { file: 'your-photo.jpg', alt: 'Description' }
+        ]
+    }
+};
+
+/* ================================================================
+   2. INITIALISE EMAILJS
+   ================================================================ */
+(function initEmailJS() {
+    if (typeof emailjs !== 'undefined') {
+        emailjs.init(CONFIG.emailjs.publicKey);
+    } else {
+        // SDK blocked or failed to load — form will degrade gracefully
+        console.warn('Scholar Kidz Zone: EmailJS SDK not loaded. Enquiry emails will not be sent.');
+    }
+}());
+
+/* ================================================================
+   3. UTILITY — sanitizeInput
+   Escapes HTML entities to prevent XSS when user-supplied text
+   is rendered to the DOM.
+   @param  {string} str  Raw string (e.g. from an input field)
+   @return {string}      HTML-entity-encoded string
+   ================================================================ */
+function sanitizeInput(str) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(String(str)));
+    return div.innerHTML;
+}
+
+/* ================================================================
+   4. GALLERY — Dynamic rendering
+   ================================================================
+   Iterates CONFIG.gallery.images, creates <div.gallery-item>
+   elements with lazy-loaded <img> tags and a hover overlay.
+   If an image file is missing (404), onerror replaces it with a
+   colourful CSS placeholder so the grid never looks broken.
+   ================================================================ */
+(function initGallery() {
+    var grid = document.getElementById('galleryGrid');
+    var note = document.getElementById('galleryNote');
+    if (!grid) return;
+
+    var folder = CONFIG.gallery.folder;
+    var images = CONFIG.gallery.images;
+
+    /* No images configured yet — show a developer hint */
+    if (!images || images.length === 0) {
+        grid.innerHTML =
+            '<div class="gallery-placeholder">' +
+            '  <span style="font-size:3rem">📷</span>' +
+            '  <p>Photos coming soon!<br>Add images to <code>' + sanitizeInput(folder) + '</code> ' +
+            'and list them in <code>js/script.js → CONFIG.gallery.images</code>.</p>' +
+            '</div>';
+        return;
+    }
+
+    /* Colour palette for CSS placeholder tiles (used when image is missing) */
+    var placeholderColors = [
+        '#FF6B6B', '#4ECDC4', '#FFE66D', '#A8E6CF',
+        '#6C5CE7', '#FD79A8', '#FDCB6E', '#55efc4'
+    ];
+
+    images.forEach(function (imgCfg, index) {
+        /* --- Outer wrapper --- */
+        var item = document.createElement('div');
+        item.className = 'gallery-item fade-in';
+        item.setAttribute('role', 'listitem');
+
+        /* --- Sanitize alt text before DOM use --- */
+        var safeAlt  = sanitizeInput(imgCfg.alt  || 'Gallery photo');
+        var safeFile = sanitizeInput(imgCfg.file || '');
+
+        /* --- Image element --- */
+        var img   = document.createElement('img');
+        img.src   = folder + imgCfg.file;   // raw path — not injected to innerHTML
+        img.alt   = safeAlt;
+        img.loading = 'lazy';               // native browser lazy-load
+
+        /**
+         * Fallback placeholder when an image file is missing.
+         * Renders a coloured tile with the alt text and filename.
+         * This keeps the grid layout intact during development.
+         */
+        img.onerror = (function (capturedItem, capturedAlt, capturedFile, capturedIndex) {
+            return function () {
+                var color = placeholderColors[capturedIndex % placeholderColors.length];
+                capturedItem.style.background = 'linear-gradient(135deg, ' + color + '33, ' + color + '88)';
+                capturedItem.style.border     = '3px solid ' + color;
+                this.style.display = 'none';  // hide the broken img tag
+
+                var ph = document.createElement('div');
+                ph.style.cssText =
+                    'display:flex;flex-direction:column;align-items:center;' +
+                    'justify-content:center;height:100%;padding:20px;text-align:center;';
+
+                /* Build placeholder content without innerHTML to avoid XSS */
+                var icon = document.createElement('span');
+                icon.style.fontSize = '2.5rem';
+                icon.textContent = '🖼️';
+
+                var label = document.createElement('span');
+                label.style.cssText = 'font-size:.84rem;font-weight:700;color:#555;margin-top:8px;';
+                label.textContent = capturedAlt;
+
+                var hint = document.createElement('span');
+                hint.style.cssText = 'font-size:.74rem;color:#888;margin-top:4px;';
+                hint.textContent = 'Add: ' + capturedFile;
+
+                ph.appendChild(icon);
+                ph.appendChild(label);
+                ph.appendChild(hint);
+                capturedItem.appendChild(ph);
+            };
+        }(item, safeAlt, safeFile, index));
+
+        /* --- Hover overlay --- */
+        var overlay = document.createElement('div');
+        overlay.className = 'gallery-item-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        var overlayText = document.createElement('span');
+        overlayText.textContent = safeAlt;      // textContent — no XSS risk
+        overlay.appendChild(overlayText);
+
+        item.appendChild(img);
+        item.appendChild(overlay);
+        grid.appendChild(item);
+    });
+
+    /* Developer note below the gallery */
+    if (note) {
+        note.textContent =
+            '📁 To add photos: place image files in /' +
+            folder + ' then list them in js/script.js → CONFIG.gallery.images';
+    }
+}());
+
+/* ================================================================
+   5. ENQUIRY FORM — Validation + EmailJS submission
+   ================================================================ */
+(function initForm() {
+    var form      = document.getElementById('enquiryForm');
+    if (!form) return;
+
+    /* Field refs */
+    var fields = {
+        name:    { el: document.getElementById('name'),    err: document.getElementById('nameError')    },
+        email:   { el: document.getElementById('email'),   err: document.getElementById('emailError')   },
+        phone:   { el: document.getElementById('phone'),   err: document.getElementById('phoneError')   },
+        message: { el: document.getElementById('message'), err: document.getElementById('messageError') }
+    };
+
+    var submitBtn = document.getElementById('submitBtn');
+    var btnText   = document.getElementById('btnText');
+    var btnLoader = document.getElementById('btnLoader');
+    var formMsg   = document.getElementById('formMessage');
+
+    /* ----------------------------------------------------------
+       Validation rules
+       Each returns an error string, or '' when value is valid.
+    ---------------------------------------------------------- */
+    var validators = {
+        name: function (val) {
+            val = val.trim();
+            if (!val)            return 'Name is required.';
+            if (val.length < 2)  return 'Name must be at least 2 characters.';
+            if (val.length > 100) return 'Name is too long (max 100 characters).';
+            /* Allow letters (incl. accented), spaces, hyphens, apostrophes, dots */
+            if (!/^[\p{L}\s'\-\.]+$/u.test(val)) return 'Please enter a valid name.';
+            return '';
+        },
+
+        email: function (val) {
+            val = val.trim();
+            if (!val)             return 'Email is required.';
+            if (val.length > 150) return 'Email is too long.';
+            /* Standard email pattern */
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return 'Please enter a valid email address.';
+            return '';
+        },
+
+        phone: function (val) {
+            val = val.trim();
+            if (!val) return 'Phone number is required.';
+            /* Allow +, digits, spaces, hyphens, parentheses; 7–15 digits */
+            if (!/^[+]?[\d\s\-()]{7,15}$/.test(val)) return 'Please enter a valid phone number (7–15 digits).';
+            return '';
+        },
+
+        message: function (val) {
+            val = val.trim();
+            if (!val)              return 'Message is required.';
+            if (val.length < 10)   return 'Message must be at least 10 characters.';
+            if (val.length > 1000) return 'Message is too long (max 1000 characters).';
+            return '';
+        }
+    };
+
+    /* ----------------------------------------------------------
+       Helper: show or clear a field's inline error
+    ---------------------------------------------------------- */
+    function setFieldError(key, msg) {
+        var f = fields[key];
+        f.el.classList.toggle('error', msg.length > 0);
+        f.err.textContent = msg;
+    }
+
+    /* ----------------------------------------------------------
+       Validate a single field; returns true when valid
+    ---------------------------------------------------------- */
+    function validateField(key) {
+        var msg = validators[key](fields[key].el.value);
+        setFieldError(key, msg);
+        return msg === '';
+    }
+
+    /* ----------------------------------------------------------
+       Validate all fields; returns true when all pass
+    ---------------------------------------------------------- */
+    function validateAll() {
+        return Object.keys(validators).reduce(function (allOk, key) {
+            /* evaluate every field (no short-circuit) to show all errors at once */
+            return validateField(key) && allOk;
+        }, true);
+    }
+
+    /* ----------------------------------------------------------
+       Live validation: re-validate on blur and while correcting
+    ---------------------------------------------------------- */
+    Object.keys(fields).forEach(function (key) {
+        /* Validate when focus leaves the field */
+        fields[key].el.addEventListener('blur', function () {
+            validateField(key);
+        });
+        /* Clear error as soon as the user starts correcting it */
+        fields[key].el.addEventListener('input', function () {
+            if (fields[key].el.classList.contains('error')) {
+                validateField(key);
+            }
+        });
+    });
+
+    /* ----------------------------------------------------------
+       Form submit handler
+    ---------------------------------------------------------- */
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        if (!validateAll()) return;
+
+        /* Show loading state */
+        submitBtn.disabled = true;
+        btnText.classList.add('hidden');
+        btnLoader.classList.remove('hidden');
+        formMsg.className = 'form-message hidden';
+
+        /* Build template parameters.
+           sanitizeInput() is applied before passing to EmailJS
+           as an extra XSS precaution (EmailJS renders in email,
+           not in our DOM, but we still clean the data). */
+        var params = {
+            from_name:  sanitizeInput(fields.name.el.value.trim()),
+            from_email: sanitizeInput(fields.email.el.value.trim()),
+            from_phone: sanitizeInput(fields.phone.el.value.trim()),
+            message:    sanitizeInput(fields.message.el.value.trim()),
+            to_email:   CONFIG.emailjs.toEmail
+        };
+
+        /* Guard: EmailJS SDK not available */
+        if (typeof emailjs === 'undefined') {
+            showFormMessage('error',
+                '⚙️ Email service is not configured. ' +
+                'Please set up EmailJS credentials in js/script.js or call us at +91 7411771299.'
+            );
+            resetBtn();
+            return;
+        }
+
+        /* Guard: credentials are still placeholders */
+        if (CONFIG.emailjs.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
+            showFormMessage('error',
+                '⚙️ EmailJS credentials not configured. ' +
+                'Open js/script.js and fill in CONFIG.emailjs with your keys.'
+            );
+            resetBtn();
+            return;
+        }
+
+        emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, params)
+            .then(function () {
+                showFormMessage('success',
+                    '🎉 Thank you! Your enquiry has been sent successfully. We will contact you soon!'
+                );
+                form.reset();
+                /* Clear all error styles after a successful reset */
+                Object.keys(fields).forEach(function (key) {
+                    fields[key].el.classList.remove('error');
+                    fields[key].err.textContent = '';
+                });
+            })
+            .catch(function (err) {
+                console.error('EmailJS error:', err);
+                showFormMessage('error',
+                    '😕 Something went wrong. Please try again or call us at +91 7411771299.'
+                );
+            })
+            .finally(function () {
+                resetBtn();
+            });
+    });
+
+    /* ----------------------------------------------------------
+       Helpers: show form-level message, reset submit button
+    ---------------------------------------------------------- */
+    function showFormMessage(type, msg) {
+        formMsg.textContent = msg;
+        formMsg.className   = 'form-message ' + (type === 'success' ? 'success' : 'form-error');
+        formMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function resetBtn() {
+        submitBtn.disabled = false;
+        btnText.classList.remove('hidden');
+        btnLoader.classList.add('hidden');
+    }
+}());
+
+/* ================================================================
+   6. NAVIGATION
+   ================================================================
+   - Hamburger toggle (mobile)
+   - Close nav on link click or outside click
+   - Sticky header shadow on scroll
+   - Highlight the active nav link based on scroll position
+   ================================================================ */
+(function initNav() {
+    var hamburger = document.getElementById('hamburger');
+    var navLinks  = document.getElementById('navLinks');
+    var header    = document.getElementById('header');
+    if (!hamburger || !navLinks || !header) return;
+
+    /* --- Toggle mobile menu --- */
+    hamburger.addEventListener('click', function () {
+        var isOpen = navLinks.classList.toggle('open');
+        hamburger.classList.toggle('active', isOpen);
+        hamburger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    /* --- Close when any nav link is clicked --- */
+    navLinks.querySelectorAll('a').forEach(function (link) {
+        link.addEventListener('click', closeMenu);
+    });
+
+    /* --- Close when clicking outside the header --- */
+    document.addEventListener('click', function (e) {
+        if (!header.contains(e.target)) closeMenu();
+    });
+
+    function closeMenu() {
+        navLinks.classList.remove('open');
+        hamburger.classList.remove('active');
+        hamburger.setAttribute('aria-expanded', 'false');
+    }
+
+    /* --- Sticky header: add shadow class after scrolling 50px --- */
+    window.addEventListener('scroll', function () {
+        header.classList.toggle('scrolled', window.scrollY > 50);
+        updateActiveLink();
+    }, { passive: true });
+
+    /* --- Active nav-link highlight based on scroll position --- */
+    var sections   = document.querySelectorAll('section[id]');
+    var navAnchors = navLinks.querySelectorAll('a[href^="#"]');
+
+    function updateActiveLink() {
+        var scrollPos = window.scrollY + 120; /* offset for sticky header */
+        sections.forEach(function (sec) {
+            var top    = sec.offsetTop;
+            var bottom = top + sec.offsetHeight;
+            if (scrollPos >= top && scrollPos < bottom) {
+                navAnchors.forEach(function (a) {
+                    a.classList.toggle('active', a.getAttribute('href') === '#' + sec.id);
+                });
+            }
+        });
+    }
+    updateActiveLink(); /* run once on load */
+}());
+
+/* ================================================================
+   7. BACK-TO-TOP BUTTON
+   ================================================================ */
+(function initBackToTop() {
+    var btn = document.getElementById('backToTop');
+    if (!btn) return;
+
+    window.addEventListener('scroll', function () {
+        btn.classList.toggle('visible', window.scrollY > 400);
+    }, { passive: true });
+
+    btn.addEventListener('click', function () {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}());
+
+/* ================================================================
+   8. SCROLL ANIMATIONS — IntersectionObserver fade-in
+   ================================================================
+   Adds '.visible' to every '.fade-in' element when it enters the
+   viewport. Sibling elements get a small staggered delay for a
+   cascading entrance effect. Each element animates only once.
+   ================================================================ */
+(function initScrollAnimations() {
+    var fadeEls = document.querySelectorAll('.fade-in');
+    if (!fadeEls.length) return;
+
+    /* Check for browser support; fall back to instant visibility */
+    if (!('IntersectionObserver' in window)) {
+        fadeEls.forEach(function (el) { el.classList.add('visible'); });
+        return;
+    }
+
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            if (!entry.isIntersecting) return;
+
+            /* Calculate stagger delay by counting siblings */
+            var siblings = entry.target.parentElement.querySelectorAll('.fade-in');
+            var idx = 0;
+            siblings.forEach(function (sib, i) {
+                if (sib === entry.target) idx = i;
+            });
+
+            setTimeout(function () {
+                entry.target.classList.add('visible');
+            }, idx * 90); /* 90 ms stagger between siblings */
+
+            observer.unobserve(entry.target); /* fire once only */
+        });
+    }, {
+        threshold:  0.12,
+        rootMargin: '0px 0px -40px 0px'
+    });
+
+    fadeEls.forEach(function (el) { observer.observe(el); });
+}());
