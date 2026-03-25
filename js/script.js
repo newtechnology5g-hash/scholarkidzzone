@@ -314,22 +314,16 @@ function sanitizeInput(str) {
         btnLoader.classList.remove('hidden');
         formMsg.className = 'form-message hidden';
 
-        /* Build form data for Web3Forms */
-        var botcheck = form.querySelector('[name="botcheck"]');
-        var formData = {
-            access_key: CONFIG.web3forms.accessKey,
-            name:     fields.name.el.value.trim(),
-            email:    fields.email.el.value.trim(),
-            phone:    fields.phone.el.value.trim(),
-            message:  fields.message.el.value.trim(),
-            subject:  'New Enquiry from Scholar Kidz Zone Website',
-            botcheck: botcheck ? botcheck.checked : false
-        };
+        /* Build form data for Web3Forms using FormData so that
+           the hCaptcha response token is automatically included */
+        var formData = new FormData(form);
+        formData.set('access_key', CONFIG.web3forms.accessKey);
+        formData.set('subject', 'New Enquiry from Scholar Kidz Zone Website');
 
         fetch('https://api.web3forms.com/submit', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify(formData)
+            headers: { 'Accept': 'application/json' },
+            body: formData
         })
             .then(function (res) { return res.json(); })
             .then(function (data) {
