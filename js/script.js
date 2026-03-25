@@ -47,15 +47,26 @@ var CONFIG = {
     gallery: {
         folder: 'assets/gallery/',
         images: [
-            { file: 'activity1.jpg', alt: 'Kids playing and learning together' },
-            { file: 'activity2.jpg', alt: 'Storytelling session in the classroom' },
-            { file: 'activity3.jpg', alt: 'Art and craft activity' },
-            { file: 'activity4.jpg', alt: 'Music and dance class' },
-            { file: 'activity5.jpg', alt: 'Nature exploration outdoors' },
-            { file: 'activity6.jpg', alt: 'Numbers and letters fun' },
-            { file: 'activity7.jpg', alt: 'Outdoor playtime' },
-            { file: 'activity8.jpg', alt: 'Classroom learning activity' }
-            // Add more: { file: 'your-photo.jpg', alt: 'Description' }
+            { file: 'activity (1).jpeg',  alt: 'Scholar Kidz Zone Photo 1'  },
+            { file: 'activity (2).jpeg',  alt: 'Scholar Kidz Zone Photo 2'  },
+            { file: 'activity (3).jpeg',  alt: 'Scholar Kidz Zone Photo 3'  },
+            { file: 'activity (4).jpeg',  alt: 'Scholar Kidz Zone Photo 4'  },
+            { file: 'activity (5).jpeg',  alt: 'Scholar Kidz Zone Photo 5'  },
+            { file: 'activity (6).jpeg',  alt: 'Scholar Kidz Zone Photo 6'  },
+            { file: 'activity (7).jpeg',  alt: 'Scholar Kidz Zone Photo 7'  },
+            { file: 'activity (8).jpeg',  alt: 'Scholar Kidz Zone Photo 8'  },
+            { file: 'activity (9).jpeg',  alt: 'Scholar Kidz Zone Photo 9'  },
+            { file: 'activity (10).jpeg', alt: 'Scholar Kidz Zone Photo 10' },
+            { file: 'activity (11).jpeg', alt: 'Scholar Kidz Zone Photo 11' },
+            { file: 'activity (12).jpeg', alt: 'Scholar Kidz Zone Photo 12' },
+            { file: 'activity (13).jpeg', alt: 'Scholar Kidz Zone Photo 13' },
+            { file: 'activity (14).jpeg', alt: 'Scholar Kidz Zone Photo 14' },
+            { file: 'activity (15).jpeg', alt: 'Scholar Kidz Zone Photo 15' },
+            { file: 'activity (16).jpeg', alt: 'Scholar Kidz Zone Photo 16' },
+            { file: 'activity (17).jpeg', alt: 'Scholar Kidz Zone Photo 17' },
+            { file: 'activity (18).jpeg', alt: 'Scholar Kidz Zone Photo 18' },
+            { file: 'activity (19).jpeg', alt: 'Scholar Kidz Zone Photo 19' },
+            { file: 'activity (20).jpeg', alt: 'Scholar Kidz Zone Photo 20' }
         ]
     }
 };
@@ -159,25 +170,10 @@ function sanitizeInput(str) {
             };
         }(item, safeAlt, safeFile, index));
 
-        /* --- Hover overlay --- */
-        var overlay = document.createElement('div');
-        overlay.className = 'gallery-item-overlay';
-        overlay.setAttribute('aria-hidden', 'true');
-        var overlayText = document.createElement('span');
-        overlayText.textContent = safeAlt;      // textContent — no XSS risk
-        overlay.appendChild(overlayText);
-
         item.appendChild(img);
-        item.appendChild(overlay);
         grid.appendChild(item);
     });
 
-    /* Developer note below the gallery */
-    if (note) {
-        note.textContent =
-            '📁 To add photos: place image files in /' +
-            folder + ' then list them in js/script.js → CONFIG.gallery.images';
-    }
 }());
 
 /* ================================================================
