@@ -3,24 +3,23 @@
  * Scholar Kidz Zone — Main JavaScript
  * ================================================================
  * Sections:
- *  1. CONFIG            — EmailJS credentials & gallery image list
- *  2. EmailJS init      — Initialise the email SDK
- *  3. sanitizeInput()   — XSS helper
- *  4. Gallery           — Dynamically render gallery items
- *  5. Enquiry form      — Validation + EmailJS submission
- *  6. Navigation        — Hamburger, sticky header, active links
- *  7. Back-to-top       — Show/hide + scroll handler
- *  8. Scroll animations — IntersectionObserver fade-in
+ *  1. CONFIG            — Web3Forms access key & gallery image list
+ *  2. sanitizeInput()   — XSS helper
+ *  3. Gallery           — Dynamically render gallery items
+ *  4. Enquiry form      — Validation + Web3Forms submission
+ *  5. Navigation        — Hamburger, sticky header, active links
+ *  6. Back-to-top       — Show/hide + scroll handler
+ *  7. Scroll animations — IntersectionObserver fade-in
  * ================================================================
  *
  * SECURITY NOTES (OWASP)
  * - All user input is sanitized via sanitizeInput() before being
  *   inserted into the DOM (prevents XSS).
- * - No sensitive credentials live in this file — EmailJS keys are
- *   placeholders that must be replaced before deployment.
+ * - Web3Forms access key is public by design — emails only go to
+ *   the registered inbox, cannot be redirected by third parties.
  * - Form fields have both HTML maxlength attributes and JS
  *   length/pattern validation.
- * - The form is submitted over HTTPS via EmailJS — no server-side
+ * - The form is submitted over HTTPS via Web3Forms — no server-side
  *   code or direct mail server credentials are exposed.
  * ================================================================
  */
@@ -30,21 +29,9 @@
 /* ================================================================
    1. CONFIGURATION
    ================================================================
-   ⚠️  IMPORTANT — replace ALL placeholder values below:
-   ─────────────────────────────────────────────────────────────
-   EmailJS setup guide:
-     1. Create a free account at https://www.emailjs.com/
-     2. Add an Email Service (Gmail, Outlook, etc.)
-        → copy the Service ID into emailjs.serviceId
-     3. Create an Email Template. Use these variables in the
-        template body:
-          {{from_name}}   — sender's name
-          {{from_email}}  — sender's email
-          {{from_phone}}  — sender's phone
-          {{message}}     — enquiry message
-        → copy the Template ID into emailjs.templateId
-     4. Go to Account → API Keys
-        → copy the Public Key into emailjs.publicKey
+   Web3Forms access key — public by design.
+   Emails are always delivered to the inbox registered at
+   https://web3forms.com — it cannot be redirected by anyone else.
    ─────────────────────────────────────────────────────────────
    Gallery setup guide:
      1. Add photo files to /assets/gallery/
@@ -53,11 +40,8 @@
         must be listed manually here.
    ================================================================ */
 var CONFIG = {
-    emailjs: {
-        publicKey:  'YOUR_EMAILJS_PUBLIC_KEY',   // e.g. 'abc123XYZ'
-        serviceId:  'YOUR_EMAILJS_SERVICE_ID',   // e.g. 'service_xxxxxx'
-        templateId: 'YOUR_EMAILJS_TEMPLATE_ID',  // e.g. 'template_xxxxxx'
-        toEmail:    'abc@gmail.com'              // destination inbox
+    web3forms: {
+        accessKey: '52bc861b-a821-4eb7-bf45-eb51c06d856e'
     },
 
     gallery: {
@@ -77,19 +61,7 @@ var CONFIG = {
 };
 
 /* ================================================================
-   2. INITIALISE EMAILJS
-   ================================================================ */
-(function initEmailJS() {
-    if (typeof emailjs !== 'undefined') {
-        emailjs.init(CONFIG.emailjs.publicKey);
-    } else {
-        // SDK blocked or failed to load — form will degrade gracefully
-        console.warn('Scholar Kidz Zone: EmailJS SDK not loaded. Enquiry emails will not be sent.');
-    }
-}());
-
-/* ================================================================
-   3. UTILITY — sanitizeInput
+   2. UTILITY — sanitizeInput
    Escapes HTML entities to prevent XSS when user-supplied text
    is rendered to the DOM.
    @param  {string} str  Raw string (e.g. from an input field)
@@ -209,11 +181,27 @@ function sanitizeInput(str) {
 }());
 
 /* ================================================================
-   5. ENQUIRY FORM — Validation + EmailJS submission
+   4. ENQUIRY FORM — Validation + Web3Forms submission
    ================================================================ */
 (function initForm() {
     var form      = document.getElementById('enquiryForm');
     if (!form) return;
+
+    /* ----------------------------------------------------------
+       Submission lock: prevent resubmission after success.
+       Stored in localStorage so it persists across page reloads.
+    ---------------------------------------------------------- */
+    var SUBMITTED_KEY = 'skz_enquiry_submitted';
+    var formMsg = document.getElementById('formMessage');
+
+    if (localStorage.getItem(SUBMITTED_KEY)) {
+        form.innerHTML =
+            '<div class="form-message success" role="status" style="margin:0">' +
+            '✅ You have already submitted an enquiry. We will contact you soon!<br>' +
+            '<small style="opacity:.75">Call us at <a href="tel:+917411771299">+91 7411771299</a> for urgent queries.</small>' +
+            '</div>';
+        return;
+    }
 
     /* Field refs */
     var fields = {
@@ -226,7 +214,7 @@ function sanitizeInput(str) {
     var submitBtn = document.getElementById('submitBtn');
     var btnText   = document.getElementById('btnText');
     var btnLoader = document.getElementById('btnLoader');
-    var formMsg   = document.getElementById('formMessage');
+    formMsg = document.getElementById('formMessage');
 
     /* ----------------------------------------------------------
        Validation rules
@@ -326,52 +314,43 @@ function sanitizeInput(str) {
         btnLoader.classList.remove('hidden');
         formMsg.className = 'form-message hidden';
 
-        /* Build template parameters.
-           sanitizeInput() is applied before passing to EmailJS
-           as an extra XSS precaution (EmailJS renders in email,
-           not in our DOM, but we still clean the data). */
-        var params = {
-            from_name:  sanitizeInput(fields.name.el.value.trim()),
-            from_email: sanitizeInput(fields.email.el.value.trim()),
-            from_phone: sanitizeInput(fields.phone.el.value.trim()),
-            message:    sanitizeInput(fields.message.el.value.trim()),
-            to_email:   CONFIG.emailjs.toEmail
+        /* Build form data for Web3Forms */
+        var botcheck = form.querySelector('[name="botcheck"]');
+        var formData = {
+            access_key: CONFIG.web3forms.accessKey,
+            name:     fields.name.el.value.trim(),
+            email:    fields.email.el.value.trim(),
+            phone:    fields.phone.el.value.trim(),
+            message:  fields.message.el.value.trim(),
+            subject:  'New Enquiry from Scholar Kidz Zone Website',
+            botcheck: botcheck ? botcheck.checked : false
         };
 
-        /* Guard: EmailJS SDK not available */
-        if (typeof emailjs === 'undefined') {
-            showFormMessage('error',
-                '⚙️ Email service is not configured. ' +
-                'Please set up EmailJS credentials in js/script.js or call us at +91 7411771299.'
-            );
-            resetBtn();
-            return;
-        }
-
-        /* Guard: credentials are still placeholders */
-        if (CONFIG.emailjs.publicKey === 'YOUR_EMAILJS_PUBLIC_KEY') {
-            showFormMessage('error',
-                '⚙️ EmailJS credentials not configured. ' +
-                'Open js/script.js and fill in CONFIG.emailjs with your keys.'
-            );
-            resetBtn();
-            return;
-        }
-
-        emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, params)
-            .then(function () {
-                showFormMessage('success',
-                    '🎉 Thank you! Your enquiry has been sent successfully. We will contact you soon!'
-                );
-                form.reset();
-                /* Clear all error styles after a successful reset */
-                Object.keys(fields).forEach(function (key) {
-                    fields[key].el.classList.remove('error');
-                    fields[key].err.textContent = '';
-                });
+        fetch('https://api.web3forms.com/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+            .then(function (res) { return res.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    localStorage.setItem(SUBMITTED_KEY, '1');
+                    showFormMessage('success',
+                        '🎉 Thank you! Your enquiry has been sent successfully. We will contact you soon!'
+                    );
+                    form.reset();
+                    Object.keys(fields).forEach(function (key) {
+                        fields[key].el.classList.remove('error');
+                        fields[key].err.textContent = '';
+                    });
+                } else {
+                    showFormMessage('error',
+                        '😕 Something went wrong. Please try again or call us at +91 7411771299.'
+                    );
+                }
             })
             .catch(function (err) {
-                console.error('EmailJS error:', err);
+                console.error('Web3Forms error:', err);
                 showFormMessage('error',
                     '😕 Something went wrong. Please try again or call us at +91 7411771299.'
                 );

@@ -6,12 +6,12 @@
     <!-- Content Security Policy: prevents XSS, restricts resource origins -->
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
-                   script-src 'self' https://cdn.emailjs.com;
-                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                   script-src 'self' https://web3forms.com https://*.hcaptcha.com https://hcaptcha.com;
+                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.hcaptcha.com https://hcaptcha.com;
                    font-src https://fonts.gstatic.com;
                    img-src 'self' data: https:;
-                   frame-src https://www.google.com https://maps.google.com;
-                   connect-src 'self' https://api.emailjs.com;">
+                   frame-src https://www.google.com https://maps.google.com https://*.hcaptcha.com https://hcaptcha.com;
+                   connect-src 'self' https://api.web3forms.com https://*.hcaptcha.com https://hcaptcha.com;">
     <title>Best Pre Primary School in Belgaum | Scholar Kidz Zone - Ujwal Nagar</title>
     <!-- SEO -->
     <meta name="description" content="Scholar Kidz Zone - Best pre primary school in Belgaum, Ujwal Nagar, Karnataka. Playschool & kindergarten for kids aged 2-8 years. Enroll now!">
@@ -348,6 +348,8 @@
 
                 <div class="form-wrapper fade-in">
                     <form id="enquiryForm" novalidate aria-label="Enquiry form">
+                        <!-- Honeypot: hidden field — bots fill it, humans don't -->
+                        <input type="checkbox" name="botcheck" style="display:none;" tabindex="-1" autocomplete="off">
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="name">Parent / Guardian Name <span class="required" aria-label="required">*</span></label>
@@ -386,6 +388,8 @@
                                 aria-required="true" aria-describedby="messageError"></textarea>
                             <span class="error-msg" id="messageError" role="alert" aria-live="polite"></span>
                         </div>
+                        <!-- hCaptcha — required before submission -->
+                        <div class="h-captcha" data-captcha="true"></div>
                         <button type="submit" class="btn btn-primary btn-submit" id="submitBtn">
                             <span id="btnText">Send Enquiry 🚀</span>
                             <span id="btnLoader" class="hidden" aria-hidden="true">Sending…</span>
@@ -439,8 +443,8 @@
     <!-- Back-to-top floating button -->
     <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 
-    <!-- EmailJS SDK (client-side email) -->
-    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <!-- Web3Forms + hCaptcha -->
+    <script src="https://web3forms.com/client/script.js" async defer></script>
     <!-- Main application script -->
     <script src="js/script.js"></script>
 </body>
