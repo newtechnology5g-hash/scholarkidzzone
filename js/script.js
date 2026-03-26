@@ -304,6 +304,13 @@ function sanitizeInput(str) {
         e.preventDefault();
         if (!validateAll()) return;
 
+        /* hCaptcha check — token injected by Web3Forms script into a hidden textarea */
+        var hCaptchaEl = form.querySelector('textarea[name=h-captcha-response]');
+        if (hCaptchaEl && !hCaptchaEl.value) {
+            showFormMessage('error', '😕 Please complete the captcha verification.');
+            return;
+        }
+
         /* Show loading state */
         submitBtn.disabled = true;
         btnText.classList.add('hidden');
