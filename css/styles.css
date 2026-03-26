@@ -631,7 +631,7 @@ button  { cursor: pointer; border: none; background: none; font-family: var(--fo
 .contact-card:hover { transform: translateX(5px); box-shadow: var(--shadow); }
 
 .contact-icon { font-size: 1.75rem; flex-shrink: 0; }
-.contact-card h4 { font-family: var(--font-heading); font-size: 1rem; color: var(--text-dark); margin-bottom: 4px; }
+.contact-card h4 { font-family: var(--font-body); font-weight: 500; font-size: .95rem; color: var(--text-dark); margin-bottom: 4px; }
 .contact-card p,
 .contact-card address,
 .contact-card a  { font-size: .95rem; color: var(--text-medium); line-height: 1.65; }
@@ -871,4 +871,172 @@ button  { cursor: pointer; border: none; background: none; font-family: var(--fo
     .building-roof   { border-left-width: 100px; border-right-width: 100px; border-bottom-width: 75px; }
 
     .gallery-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+
+/* ----------------------------------------------------------------
+   18. PLAYFUL KIDS THEME — Vibrant section backgrounds & colors
+---------------------------------------------------------------- */
+
+/* Hero — more vivid rainbow gradient */
+.hero {
+    background: linear-gradient(135deg, #FFF0F5 0%, #FFE0EE 18%, #F0E0FF 36%, #E0EEFF 54%, #E0FFF5 72%, #FFFCE0 100%);
+}
+.shape { opacity: .18; }
+
+/* About — warm dotted background */
+.about {
+    background: #FFFBF7;
+    background-image: radial-gradient(circle, rgba(255,107,107,.07) 1.5px, transparent 1.5px);
+    background-size: 30px 30px;
+}
+
+/* About highlights — colored borders permanently */
+.highlight:nth-child(1) { border-color: var(--primary);       background: #FFF5F5; }
+.highlight:nth-child(2) { border-color: var(--secondary);     background: #F0FFFD; }
+.highlight:nth-child(3) { border-color: var(--accent-yellow); background: #FFFDE0; }
+.highlight:nth-child(4) { border-color: var(--accent-purple); background: #F5F0FF; }
+
+/* Stat cards — colored gradient backgrounds */
+.stat-card:nth-child(1) { background: linear-gradient(135deg, #FFF5F5, #FFE8E8); }
+.stat-card:nth-child(2) { background: linear-gradient(135deg, #F0FFFD, #DCF8F5); }
+.stat-card:nth-child(3) { background: linear-gradient(135deg, #FFFDE0, #FFF5CC); }
+.stat-card:nth-child(4) { background: linear-gradient(135deg, #F5F0FF, #EBE0FF); }
+
+/* Programs — rainbow gradient background */
+.programs {
+    background: linear-gradient(160deg, #FFF5FF 0%, #FFF9E0 50%, #E8FFF8 100%);
+}
+
+/* Program cards — subtle tinted backgrounds */
+.program-card:nth-child(1) { background: linear-gradient(160deg, #FFF8F8, #FFFFFF); }
+.program-card:nth-child(2) { background: linear-gradient(160deg, #F5FFFE, #FFFFFF); }
+.program-card:nth-child(3) { background: linear-gradient(160deg, #FFFDF0, #FFFFFF); }
+.program-card:nth-child(4) { background: linear-gradient(160deg, #F8F5FF, #FFFFFF); }
+.program-card:nth-child(5) { background: linear-gradient(160deg, #F0FFF8, #FFFFFF); }
+.program-card:nth-child(6) { background: linear-gradient(160deg, #FFF8F0, #FFFFFF); }
+
+/* Gallery — soft pastel gradient */
+.gallery {
+    background: linear-gradient(135deg, #FFF0F8 0%, #F0FFFD 100%);
+}
+
+/* Contact — playful multi-color gradient */
+.contact {
+    background: linear-gradient(160deg, #FFF8FF 0%, #F0FFFA 50%, #FFF5E8 100%);
+}
+
+/* Enquiry — warm rainbow gradient */
+.enquiry {
+    background: linear-gradient(135deg, #FFF9E0 0%, #FFF0F8 50%, #EFF8FF 100%);
+}
+
+/* Section badges — unique color per section */
+#about   .section-badge { background: var(--accent-yellow);  color: var(--text-dark); }
+#programs .section-badge { background: var(--primary);        color: var(--white); }
+#gallery  .section-badge { background: var(--secondary);      color: var(--white); }
+#contact  .section-badge { background: var(--accent-purple);  color: var(--white); }
+#enquiry  .section-badge { background: var(--accent-pink);    color: var(--white); }
+
+/* ----------------------------------------------------------------
+   19. GALLERY LIGHTBOX
+---------------------------------------------------------------- */
+.lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+.lightbox.open { display: flex; }
+
+.lightbox-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .90);
+    cursor: pointer;
+}
+
+.lightbox-content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 92vw;
+}
+
+.lightbox-img {
+    max-width: 88vw;
+    max-height: 80vh;
+    object-fit: contain;
+    border-radius: 14px;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
+    display: block;
+}
+
+.lightbox-caption {
+    color: rgba(255, 255, 255, .80);
+    font-size: .9rem;
+    margin-top: 14px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.lightbox-counter {
+    color: rgba(255, 255, 255, .45);
+    font-size: .80rem;
+    margin-top: 4px;
+    text-align: center;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    z-index: 2;
+    width: 46px;
+    height: 46px;
+    background: rgba(255, 255, 255, .15);
+    color: var(--white);
+    font-size: 1.3rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s, transform .2s;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,.25);
+}
+.lightbox-close:hover { background: var(--primary); transform: scale(1.1); }
+
+.lightbox-prev,
+.lightbox-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 56px;
+    height: 56px;
+    background: rgba(255, 255, 255, .15);
+    color: var(--white);
+    font-size: 2.4rem;
+    line-height: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s, transform .2s;
+    cursor: pointer;
+    border: 2px solid rgba(255,255,255,.25);
+}
+.lightbox-prev { left: 18px; }
+.lightbox-next { right: 18px; }
+.lightbox-prev:hover { background: var(--secondary); transform: translateY(-50%) scale(1.12); }
+.lightbox-next:hover { background: var(--secondary); transform: translateY(-50%) scale(1.12); }
+
+@media (max-width: 600px) {
+    .lightbox-prev { left: 8px; width: 44px; height: 44px; font-size: 2rem; }
+    .lightbox-next { right: 8px; width: 44px; height: 44px; font-size: 2rem; }
+    .lightbox-img  { max-width: 96vw; max-height: 75vh; }
 }

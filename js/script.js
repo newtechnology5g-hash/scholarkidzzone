@@ -485,3 +485,96 @@ function sanitizeInput(str) {
 
     fadeEls.forEach(function (el) { observer.observe(el); });
 }());
+
+/* ================================================================
+   9. GALLERY LIGHTBOX
+   ================================================================
+   Opens a full-screen lightbox when a gallery image is clicked.
+   Supports keyboard navigation (← → Esc) and prev/next buttons.
+   ================================================================ */
+(function initLightbox() {
+    var lightbox      = document.getElementById('galleryLightbox');
+    var lightboxImg   = document.getElementById('lightboxImg');
+    var lightboxCap   = document.getElementById('lightboxCaption');
+    var lightboxCtr   = document.getElementById('lightboxCounter');
+    var closeBtn      = document.getElementById('lightboxClose');
+    var prevBtn       = document.getElementById('lightboxPrev');
+    var nextBtn       = document.getElementById('lightboxNext');
+    var overlay       = document.getElementById('lightboxOverlay');
+    var grid          = document.getElementById('galleryGrid');
+
+    if (!lightbox || !grid) return;
+
+    var galleryImages = []; /* { src, alt } — only real loaded images */
+    var currentIdx    = 0;
+
+    function buildList() {
+        galleryImages = [];
+        var items = grid.querySelectorAll('.gallery-item');
+        items.forEach(function (item) {
+            var img = item.querySelector('img');
+            if (img && img.style.display !== 'none' && img.src) {
+                galleryImages.push({ src: img.src, alt: img.alt || '' });
+            }
+        });
+    }
+
+    function show(idx) {
+        var entry = galleryImages[idx];
+        lightboxImg.src = entry.src;
+        lightboxImg.alt = entry.alt;
+        lightboxCap.textContent = entry.alt;
+        lightboxCtr.textContent = (idx + 1) + ' / ' + galleryImages.length;
+        prevBtn.style.display = galleryImages.length > 1 ? 'flex' : 'none';
+        nextBtn.style.display = galleryImages.length > 1 ? 'flex' : 'none';
+    }
+
+    function open(clickedSrc) {
+        buildList();
+        if (!galleryImages.length) return;
+        currentIdx = 0;
+        for (var i = 0; i < galleryImages.length; i++) {
+            if (galleryImages[i].src === clickedSrc) { currentIdx = i; break; }
+        }
+        show(currentIdx);
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        closeBtn.focus();
+    }
+
+    function close() {
+        lightbox.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    function prev() {
+        currentIdx = (currentIdx - 1 + galleryImages.length) % galleryImages.length;
+        show(currentIdx);
+    }
+
+    function next() {
+        currentIdx = (currentIdx + 1) % galleryImages.length;
+        show(currentIdx);
+    }
+
+    /* Click on any gallery item */
+    grid.addEventListener('click', function (e) {
+        var item = e.target.closest('.gallery-item');
+        if (!item) return;
+        var img = item.querySelector('img');
+        if (!img || img.style.display === 'none') return;
+        open(img.src);
+    });
+
+    overlay.addEventListener('click', close);
+    closeBtn.addEventListener('click', close);
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+
+    document.addEventListener('keydown', function (e) {
+        if (!lightbox.classList.contains('open')) return;
+        if (e.key === 'Escape')     close();
+        if (e.key === 'ArrowLeft')  prev();
+        if (e.key === 'ArrowRight') next();
+    });
+}());
