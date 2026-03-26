@@ -334,6 +334,7 @@ function sanitizeInput(str) {
                         fields[key].err.textContent = '';
                     });
                 } else {
+                    console.error('Web3Forms rejected:', data);
                     showFormMessage('error',
                         '😕 Something went wrong. Please try again or call us at +91 7411771299.'
                     );
