@@ -310,20 +310,21 @@ function sanitizeInput(str) {
         btnLoader.classList.remove('hidden');
         formMsg.className = 'form-message hidden';
 
-        /* Build form data for Web3Forms using FormData so that
-           the hCaptcha response token is automatically included */
         var formData = new FormData(form);
-        formData.set('access_key', CONFIG.web3forms.accessKey);
-        formData.set('subject', 'New Enquiry from Scholar Kidz Zone Website');
+        formData.append('access_key', CONFIG.web3forms.accessKey);
+        formData.append('subject', 'New Enquiry from Scholar Kidz Zone Website');
 
         fetch('https://api.web3forms.com/submit', {
             method: 'POST',
-            headers: { 'Accept': 'application/json' },
             body: formData
         })
-            .then(function (res) { return res.json(); })
-            .then(function (data) {
-                if (data.success) {
+            .then(function (res) {
+                return res.json().then(function (data) {
+                    return { ok: res.ok, data: data };
+                });
+            })
+            .then(function (result) {
+                if (result.ok) {
                     localStorage.setItem(SUBMITTED_KEY, '1');
                     showFormMessage('success',
                         '🎉 Thank you! Your enquiry has been sent successfully. We will contact you soon!'
@@ -334,9 +335,9 @@ function sanitizeInput(str) {
                         fields[key].err.textContent = '';
                     });
                 } else {
-                    console.error('Web3Forms rejected:', data);
+                    console.error('Web3Forms rejected:', result.data);
                     showFormMessage('error',
-                        '😕 Something went wrong. Please try again or call us at +91 7411771299.'
+                        '😕 ' + (result.data.message || 'Something went wrong. Please try again or call us at +91 7411771299.')
                     );
                 }
             })
